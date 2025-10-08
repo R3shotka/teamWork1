@@ -173,8 +173,8 @@
             </div>
 
             <div>
-              <label for="note">Коротко про досвід (за бажанням)</label>
-              <textarea id="note" name="note" rows="4" placeholder="Наприклад: знайомий з основами C#"></textarea>
+              <label for="message">Коротко про досвід (за бажанням)</label>
+              <textarea id="message" name="message" rows="4" placeholder="Наприклад: знайомий з основами C#"></textarea>
             </div>
 
             <div style="display:flex; gap:12px; align-items:center">
@@ -345,54 +345,64 @@
   </div>
 
   <script>
-    // плавний скрол до форми
-    document.getElementById('topRegister').addEventListener('click', () => {
-      document.getElementById('registerSection').scrollIntoView({behavior:'smooth', block:'center'});
-      // фокус на перше поле
-      setTimeout(()=>document.getElementById('name').focus(), 450);
+  // Плавний скрол до форми
+  document.getElementById('topRegister').addEventListener('click', () => {
+    document.getElementById('registerSection').scrollIntoView({behavior:'smooth', block:'center'});
+    setTimeout(() => document.getElementById('name').focus(), 450);
+  });
+
+  // Reveal on scroll
+  const reveals = document.querySelectorAll('.reveal');
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) e.target.classList.add('visible');
     });
+  }, { threshold: 0.12 });
+  reveals.forEach(r => obs.observe(r));
 
-    // Reveal on scroll
-    const reveals = document.querySelectorAll('.reveal');
-    const obs = new IntersectionObserver(entries => {
-      entries.forEach(e => {
-        if (e.isIntersecting) e.target.classList.add('visible');
-      });
-    }, {threshold: 0.12});
-    reveals.forEach(r => obs.observe(r));
+  // Форма: надсилання на /api/register
+  const form = document.getElementById('registerForm');
+  const formMsg = document.getElementById('formMsg');
 
-    // Форма: відправка на бекенд /api/register (див. server.js нижче)
-    const form = document.getElementById('registerForm');
-    const formMsg = document.getElementById('formMsg');
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const data = Object.fromEntries(new FormData(form));
-      // базова клієнтська валідація
-      if (!data.name || !data.email) {
-        formMsg.textContent = 'Будь ласка, заповніть імʼя та email.';
-        return;
-      }
-      formMsg.textContent = 'Відправляємо...';
-      try {
-        const res = await fetch('/api/register', {
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault(); // зупиняємо перезавантаження
+
+    const data = Object.fromEntries(new FormData(form));
+
+    // Перевірка обовʼязкових полів
+    if (!data.name || !data.email) {
+      formMsg.textContent = 'Будь ласка, заповніть імʼя та email.';
+      return;
+    }
+
+    formMsg.textContent = 'Відправляємо...';
+
+    try {
+        const res = await fetch('https://mancity-fan-site.onrender.com/api/comments', {
           method: 'POST',
-          headers: {'Content-Type':'application/json'},
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(data)
         });
-        if (!res.ok) throw new Error('server error');
+
         const json = await res.json();
-        formMsg.textContent = json.message || 'Дякуємо! Ми звʼяжемося з вами.';
-        form.reset();
+
+        if (res.ok && json.success) {
+          formMsg.textContent = '✅ Дякуємо! Ми звʼяжемося з вами протягом 48 годин.';
+          form.reset();
+        } else {
+          formMsg.textContent = `⚠️ Не вдалося відправити: ${json.error || 'Спробуйте ще раз'}`;
+        }
       } catch (err) {
         console.error(err);
-        formMsg.textContent = 'Сталася помилка при відправці. Спробуйте пізніше або напишіть нам в Telegram.';
+        formMsg.textContent = '❌ Сталася помилка. Спробуйте пізніше.';
       }
     });
 
-    // Для демонстрації: поступове появлення відгуків (додаємо timeout)
-    document.querySelectorAll('.test').forEach((t,i) => {
-      setTimeout(()=> t.style.opacity = 1, 200 + i*120);
-    });
-  </script>
+  // Плавне появлення відгуків
+  document.querySelectorAll('.test').forEach((t, i) => {
+    setTimeout(() => t.style.opacity = 1, 200 + i * 120);
+  });
+</script>
+
 </body>
 </html>
